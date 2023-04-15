@@ -166,16 +166,146 @@ BEGIN
 END;
 
 --9. Codificar un procedimiento que reciba una cadena y la visualice al revés.
+CREATE OR REPLACE PROCEDURE rever(CADENA VARCHAR2)
+AS 
+    CADENA2 VARCHAR2(100);
+BEGIN
+    FOR CARACTER IN REVERSE 1..LENGTH(CADENA)
+    LOOP
+        CADENA2 := CADENA2||SUBSTR(CADENA,CARACTER,1);
+    END LOOP;
+    DBMS_OUTPUT.PUT_LINE(CADENA2);
+END;
+
+BEGIN
+    rever('HOLA');
+END;
+
 --10. Escribir un procedimiento que reciba una fecha y escriba el año, en número, correspondiente a
 --esa fecha.
+CREATE OR REPLACE PROCEDURE EJER10 (FECHA DATE)
+AS
+	BEGIN 
+		DBMS_OUTPUT.PUT_LINE(EXTRACT(YEAR FROM FECHA));
+	END;
+
+BEGIN
+	EJER10(SYSDATE);
+END;
+
 --11. Realiza una función llamada CalcularCosteSalarial que reciba un nombre de departamento y
 --devuelva la suma de los salarios y comisiones de los empleados de dicho departamento.
+CREATE OR REPLACE FUNCTION CalcularCosteSalarial(NOMB VARCHAR2)
+RETURN NUMBER
+AS 
+	SUMA_SAL_COM NUMBER;
+BEGIN
+	SELECT SUM(E.SAL) + SUM(E.COMM) INTO SUMA_SAL_COM
+	FROM DEPT d, EMP e  
+	WHERE D.DEPTNO = E.DEPTNO 
+	AND D.DNAME LIKE NOMB;
+	RETURN SUMA_SAL_COM;
+END;
+
+SELECT CalcularCosteSalarial('SALES') FROM DUAL;
+
 --12. Codificar un procedimiento que permita borrar un empleado cuyo número se pasará en la
 --llamada. Si no existiera dar el correspondiente mensaje de error.
+CREATE OR REPLACE PROCEDURE EJER12(NUM NUMBER)
+AS 
+	NODATA EXCEPTION;
+	EMPLEADO NUMBER;
+BEGIN
+	SELECT E2.EMPNO INTO EMPLEADO
+	FROM EMP e2 
+	WHERE E2.EMPNO = NUM;
+
+	IF EMPLEADO IS NULL THEN 
+		RAISE NODATA;
+	ELSE
+		DELETE FROM EMP e 
+		WHERE E.EMPNO = NUM;
+	END IF;
+	EXCEPTION WHEN NODATA OR NO_DATA_FOUND THEN 
+		DBMS_OUTPUT.PUT_LINE('ERROR, NO EXISTE EL EMPLEADO');
+END;
+
+BEGIN
+	EJER12(7344);
+END;
+
+SELECT E.EMPNO 
+FROM EMP e ;
+
 --13. Realiza un procedimiento MostrarCostesSalariales que muestre los nombres de todos los
 --departamentos y el coste salarial de cada uno de ellos
+CREATE OR REPLACE PROCEDURE MostrarCostesSalariales
+AS 
+	CURSOR C_MostrarCostesSalariales IS 
+		SELECT D.DNAME , (SUM(E.SAL)+SUM(E.COMM)) AS SUMA
+		FROM DEPT D, EMP E
+		WHERE D.DEPTNO = E.DEPTNO
+		GROUP BY D.DNAME;
+BEGIN
+	FOR I IN C_MostrarCostesSalariales
+	LOOP
+		DBMS_OUTPUT.PUT_LINE(I.DNAME || ' ' || I.SUMA);
+	END LOOP;
+END;
+
+BEGIN
+	MostrarCostesSalariales;
+END;
+
+	
+
 --14. Escribir un procedimiento que modifique la localidad de un departamento. El procedimiento
 --recibirá como parámetros el número del departamento y la localidad nueva.
+CREATE OR REPLACE PROCEDURE MOD_LOC(NUM NUMBER, LOCALD VARCHAR2)
+AS 
+	NODATA EXCEPTION;
+	NUMDEP NUMBER;
+BEGIN
+	SELECT D.DEPTNO INTO NUMDEP
+	FROM DEPT d
+	WHERE D.DEPTNO = NUM;
+	
+	IF NUMDEP IS NULL THEN 
+		RAISE NODATA;
+	ELSE
+		UPDATE DEPT D SET D.LOC = LOCALD
+		WHERE D.DEPTNO = NUM;
+	END IF;
+	EXCEPTION WHEN NODATA OR NO_DATA_FOUND THEN 
+		DBMS_OUTPUT.PUT_LINE('ERROR, INSERTE DATOS');
+END;
+
+BEGIN
+	MOD_LOC(10,'GETAFE');
+END;
+
+SELECT * 
+FROM DEPT d;
+
 --15. Realiza un procedimiento MostrarMasAntiguos que muestre el nombre del empleado más
 --antiguo de cada departamento junto con el nombre del departamento. Trata las excepciones
 --que consideres necesarias.
+CREATE OR REPLACE PROCEDURE MostrarMasAntiguos
+AS 
+	noData EXCEPTION;
+	CURSOR C_EJER15 IS
+			SELECT DISTINCT d.DNAME AS departamento, e.ENAME AS nombre
+			FROM EMP e, DEPT d  
+			WHERE e.DEPTNO = d.DEPTNO AND e.HIREDATE IN (SELECT min(e.HIREDATE)
+								FROM EMP e , DEPT d 
+								WHERE e.DEPTNO = d.DEPTNO 
+								GROUP BY d.DNAME );
+BEGIN 
+	FOR I IN C_EJER15 LOOP
+	dbms_output.put_line('Departamento: '||I.departamento||' Nombre: '||I.nombre);
+	END LOOP;
+END;
+
+BEGIN
+	MostrarMasAntiguos;
+END;
